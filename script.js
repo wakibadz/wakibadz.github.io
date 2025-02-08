@@ -74,9 +74,9 @@ function updateInfo() {
                     <span class="dot green"></span> Point ${index + 1} (Reached)
                 </div>`;
             } else {
-                // Show arrow and distance
+                // Show arrow, direction, and distance
                 infoHTML += `<div class="point">
-                    <span class="arrow">${direction}</span> Point ${index + 1}: ${distance} meters
+                    <span class="arrow">➡ ${direction}</span> Point ${index + 1}: ${distance} meters
                 </div>`;
             }
         });
@@ -84,9 +84,12 @@ function updateInfo() {
 
     document.getElementById("info").innerHTML = infoHTML;
 
-    // Show speed (start at 0 m/s if not enough data)
+    // Show current and average speed
+    let currentSpeed = getCurrentSpeed(locationHistory).toFixed(2);
     let avgSpeed = getAverageSpeed(locationHistory).toFixed(2);
-    document.getElementById("speedInfo").innerHTML = `Speed: ${avgSpeed} m/s`;
+    
+    document.getElementById("speedInfo").innerHTML = 
+        `Current speed: ${currentSpeed} m/s<br>Average speed: ${avgSpeed} m/s`;
 }
 
 // Get cardinal direction (N, NE, E, etc.)
@@ -138,6 +141,18 @@ function getAverageSpeed(points) {
     }
 
     return totalTime > 0 ? totalDistance / totalTime : 0;
+}
+
+function getCurrentSpeed(points) {
+    if (points.length < 2) return 0; // Ensure speed is 0 initially
+
+    let lastPoint = points[points.length - 1];
+    let secondLastPoint = points[points.length - 2];
+
+    let distance = getDistance(secondLastPoint, lastPoint);
+    let timeDiff = (lastPoint.timestamp - secondLastPoint.timestamp) / 1000;
+
+    return timeDiff > 0 ? distance / timeDiff : 0 ;
 }
 
 function euclidean(p1, p2) {
