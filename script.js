@@ -1,9 +1,12 @@
 // Code from Radu Mariescu-Istodor
 // https://www.youtube.com/watch?v=Uki99zJ2UQs
 
+// Calculating speed
+// https://stackoverflow.com/questions/47028071/calculating-speed-from-set-of-longitude-and-latitudes-values-obtained-in-one-min
+
 let CURRENT_LOCATION = null;
-let A = null;
-let B = null;
+let savedPoints = []; // Store multiple points
+let locationHistory = []; // Store past locations
 
 function main() {
     let geolocation = null;
@@ -22,38 +25,81 @@ function main() {
 }
 
 function onLocationUpdate(event) {
-    CURRENT_LOCATION = event.coords;
-    document.getElementById("loc").innerHTML = `Latitude: ${event.coords.latitude}, Longitude: ${event.coords.longitude}`;
-    console.log(event);
+    CURRENT_LOCATION = {
+        latitude: event.coords.latitude,
+        longitude: event.coords.longitude,
+        timestamp: event.timestamp // Store time for speed calculations
+    };
+
+    locationHistory.push(CURRENT_LOCATION);
+
+    // Keep only the last 6 points for average speed calculation
+    // As per recommendation from StackOverflow post
+    if (locationHistory.length > 6) {
+        locationHistory.shift();
+    }
+
+    document.getElementById("loc").innerHTML = 
+        `Latitude: ${CURRENT_LOCATION.latitude}, Longitude: ${CURRENT_LOCATION.longitude}`;
+
+    updateInfo(); // Update distances and arrows dynamically
 }
 
 function onError(err) {
     alert("Cannot access location: " + err.message);
 }
 
-function setA() {
-    A = CURRENT_LOCATION;
-    updateInfo();
-}
-
-function setB() {
-    B = CURRENT_LOCATION;
-    updateInfo();
+function addPoint() {
+    if (CURRENT_LOCATION) {
+        savedPoints.push({
+            latitude: CURRENT_LOCATION.latitude,
+            longitude: CURRENT_LOCATION.longitude
+        });
+        updateInfo();
+    }
 }
 
 function updateInfo() {
-    if (A != null) {
-        document.getElementById("aBtn").innerHTML = `${A.latitude}<br>${A.longitude}`;
+    let infoHTML = "";
+
+    if (savedPoints.length > 0) {
+        savedPoints.forEach((point, index) => {
+            let distance = getDistance(CURRENT_LOCATION, point).toFixed(2);
+            let direction = getDirection(CURRENT_LOCATION, point);
+
+            if (distance < 5) { 
+                // If within 5 meters, show green dot
+                infoHTML += `<div class="point">
+                    <span class="dot green"></span> Point ${index + 1} (Reached)
+                </div>`;
+            } else {
+                // Show arrow and distance
+                infoHTML += `<div class="point">
+                    <span class="arrow">${direction}</span> Point ${index + 1}: ${distance} meters
+                </div>`;
+            }
+        });
     }
 
-    if (B != null) {
-        document.getElementById("bBtn").innerHTML = `${B.latitude}<br>${B.longitude}`;
-    }
+    document.getElementById("info").innerHTML = infoHTML;
 
-    if (A != null && B != null) {
-        let dist = getDistance(A, B).toFixed(2);
-        document.getElementById("info").innerHTML = `Distance: ${dist} meters`;
+    // Show speed
+    if (locationHistory.length >= 2) {
+        let avgSpeed = getAverageSpeed(locationHistory).toFixed(2);
+        document.getElementById("speedInfo").innerHTML = `Speed: ${avgSpeed} m/s`;
     }
+}
+
+// Get cardinal direction (N, NE, E, etc.)
+function getDirection(start, end) {
+    let deltaLat = end.latitude - start.latitude;
+    let deltaLon = end.longitude - start.longitude;
+    let angle = Math.atan2(deltaLon, deltaLat) * (180 / Math.PI);
+
+    if (angle < 0) angle += 360;
+
+    const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+    return directions[Math.round(angle / 45) % 8];
 }
 
 function latlonToXYZ(latlon, R) {
@@ -73,8 +119,26 @@ function getDistance(latlon1, latlon2) {
     const R = 6371000; // Earth radius in meters
     const xyz1 = latlonToXYZ(latlon1, R);
     const xyz2 = latlonToXYZ(latlon2, R);
-    const eucl = euclidean(xyz1, xyz2);
-    return eucl;
+    return euclidean(xyz1, xyz2);
+}
+
+function getAverageSpeed(points) {
+    if (points.length < 2) return 0; // Need at least two points to calculate speed
+
+    let totalDistance = 0;
+    let totalTime = 0;
+
+    for (let i = 0; i < points.length - 1; i++) {
+        const dist = getDistance(points[i], points[i + 1]);
+        const timeDiff = (points[i + 1].timestamp - points[i].timestamp) / 1000; // Convert ms to seconds
+
+        if (timeDiff > 0) { // Avoid division by zero
+            totalDistance += dist;
+            totalTime += timeDiff;
+        }
+    }
+
+    return totalTime > 0 ? totalDistance / totalTime : 0; // Speed in meters per second
 }
 
 function euclidean(p1, p2) {

@@ -1,0 +1,23 @@
+.point {
+    display: flex;
+    align-items: center;
+    font-size: 18px;
+    margin-bottom: 5px;
+}
+
+.arrow {
+    font-size: 20px;
+    margin-right: 10px;
+}
+
+.dot {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.green {
+    background-color: green;
+}
