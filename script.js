@@ -5,7 +5,7 @@
 // https://stackoverflow.com/questions/47028071/calculating-speed-from-set-of-longitude-and-latitudes-values-obtained-in-one-min
 
 let CURRENT_LOCATION = null;
-let savedPoints = []; // Store multiple points
+let savedPoints = []; // Array to store multiple points
 let locationHistory = []; // Store past locations
 
 function main() {
@@ -22,6 +22,8 @@ function main() {
     } else {
         alert("Cannot access location");
     }
+
+    updateInfo(); // Ensure speed is displayed immediately
 }
 
 function onLocationUpdate(event) {
@@ -34,7 +36,6 @@ function onLocationUpdate(event) {
     locationHistory.push(CURRENT_LOCATION);
 
     // Keep only the last 6 points for average speed calculation
-    // As per recommendation from StackOverflow post
     if (locationHistory.length > 6) {
         locationHistory.shift();
     }
@@ -42,7 +43,7 @@ function onLocationUpdate(event) {
     document.getElementById("loc").innerHTML = 
         `Latitude: ${CURRENT_LOCATION.latitude}, Longitude: ${CURRENT_LOCATION.longitude}`;
 
-    updateInfo(); // Update distances and arrows dynamically
+    updateInfo(); // Update distances and speed dynamically
 }
 
 function onError(err) {
@@ -51,9 +52,9 @@ function onError(err) {
 
 function addPoint() {
     if (CURRENT_LOCATION) {
-        savedPoints.push({
-            latitude: CURRENT_LOCATION.latitude,
-            longitude: CURRENT_LOCATION.longitude
+        savedPoints.push({ 
+            latitude: CURRENT_LOCATION.latitude, 
+            longitude: CURRENT_LOCATION.longitude 
         });
         updateInfo();
     }
@@ -83,11 +84,9 @@ function updateInfo() {
 
     document.getElementById("info").innerHTML = infoHTML;
 
-    // Show speed
-    if (locationHistory.length >= 2) {
-        let avgSpeed = getAverageSpeed(locationHistory).toFixed(2);
-        document.getElementById("speedInfo").innerHTML = `Speed: ${avgSpeed} m/s`;
-    }
+    // Show speed (start at 0 m/s if not enough data)
+    let avgSpeed = getAverageSpeed(locationHistory).toFixed(2);
+    document.getElementById("speedInfo").innerHTML = `Speed: ${avgSpeed} m/s`;
 }
 
 // Get cardinal direction (N, NE, E, etc.)
@@ -123,22 +122,22 @@ function getDistance(latlon1, latlon2) {
 }
 
 function getAverageSpeed(points) {
-    if (points.length < 2) return 0; // Need at least two points to calculate speed
+    if (points.length < 2) return 0; // Ensure speed is 0 initially
 
     let totalDistance = 0;
     let totalTime = 0;
 
     for (let i = 0; i < points.length - 1; i++) {
         const dist = getDistance(points[i], points[i + 1]);
-        const timeDiff = (points[i + 1].timestamp - points[i].timestamp) / 1000; // Convert ms to seconds
+        const timeDiff = (points[i + 1].timestamp - points[i].timestamp) / 1000; 
 
-        if (timeDiff > 0) { // Avoid division by zero
+        if (timeDiff > 0) { 
             totalDistance += dist;
             totalTime += timeDiff;
         }
     }
 
-    return totalTime > 0 ? totalDistance / totalTime : 0; // Speed in meters per second
+    return totalTime > 0 ? totalDistance / totalTime : 0;
 }
 
 function euclidean(p1, p2) {
